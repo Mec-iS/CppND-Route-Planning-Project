@@ -37,6 +37,7 @@ static Model::Landuse::Type String2LanduseType(std::string_view type)
     return Model::Landuse::Invalid;
 }
 
+/// Model Constructor
 Model::Model( const std::vector<std::byte> &xml )
 {
     LoadData(xml);
@@ -48,14 +49,17 @@ Model::Model( const std::vector<std::byte> &xml )
     });
 }
 
+/// Model load data
 void Model::LoadData(const std::vector<std::byte> &xml)
 {
     using namespace pugi;
     
+    // use pugi::load_buffer to load XML content as bytes
     xml_document doc;
     if( !doc.load_buffer(xml.data(), xml.size()) )
         throw std::logic_error("failed to parse the xml file");
-    
+
+    // load area bounds from string to float    
     if( auto bounds = doc.select_nodes("/osm/bounds"); !bounds.empty() ) {
         auto node = bounds.first().node();
         m_MinLat = atof(node.attribute("minlat").as_string());
@@ -66,30 +70,41 @@ void Model::LoadData(const std::vector<std::byte> &xml)
     else 
         throw std::logic_error("map's bounds are not defined");
 
+    // select all the DOM children of "osm" with name "node"
     std::unordered_map<std::string, int> node_id_to_num;
     for( const auto &node: doc.select_nodes("/osm/node") ) {
+        // store nodes in a map<id, number of sub-nodes> 
         node_id_to_num[node.node().attribute("id").as_string()] = (int)m_Nodes.size();
-        m_Nodes.emplace_back();        
+        // push to vector a constructed Node object
+        m_Nodes.emplace_back();
+        // set the lat/long of the pre-constructed node above
+        // `m_Nodes.back()` returns a reference to the latest element of the vector
         m_Nodes.back().y = atof(node.node().attribute("lat").as_string());
         m_Nodes.back().x = atof(node.node().attribute("lon").as_string());
     }
 
+    // select all the DOM children of "osm" with name "way"
     std::unordered_map<std::string, int> way_id_to_num;    
     for( const auto &way: doc.select_nodes("/osm/way") ) {
+        // data for the selected way
         auto node = way.node();
         
+        // add a "way" as a "node" above
         const auto way_num = (int)m_Ways.size();
         way_id_to_num[node.attribute("id").as_string()] = way_num;
         m_Ways.emplace_back();
         auto &new_way = m_Ways.back();
         
+        // loop through members of the way
         for( auto child: node.children() ) {
-            auto name = std::string_view{child.name()}; 
+            auto name = std::string_view{child.name()};
+            // node references 
             if( name == "nd" ) {
                 auto ref = child.attribute("ref").as_string();
                 if( auto it = node_id_to_num.find(ref); it != end(node_id_to_num) )
                     new_way.nodes.emplace_back(it->second);
             }
+            // node tags
             else if( name == "tag" ) {
                 auto category = std::string_view{child.attribute("k").as_string()};
                 auto type = std::string_view{child.attribute("v").as_string()};
@@ -129,6 +144,7 @@ void Model::LoadData(const std::vector<std::byte> &xml)
         }
     }
     
+    // ways a represented as "relation"
     for( const auto &relation: doc.select_nodes("/osm/relation") ) {
         auto node = relation.node();
         auto noode_id = std::string_view{node.attribute("id").as_string()};
@@ -137,6 +153,7 @@ void Model::LoadData(const std::vector<std::byte> &xml)
             mp.outer = std::move(outer);
             mp.inner = std::move(inner);
         };
+        // loop through way's members
         for( auto child: node.children() ) {
             auto name = std::string_view{child.name()}; 
             if( name == "member" ) {
@@ -175,6 +192,7 @@ void Model::LoadData(const std::vector<std::byte> &xml)
     }
 }
 
+/// Model method to normalise coordinates
 void Model::AdjustCoordinates()
 {    
     const auto pi = 3.14159265358979323846264338327950288;
