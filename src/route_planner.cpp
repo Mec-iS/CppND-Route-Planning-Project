@@ -1,5 +1,6 @@
 #include "route_planner.h"
 #include <algorithm>
+using std::sort;
 
 RoutePlanner::RoutePlanner(RouteModel &model, float start_x, float start_y,
     float end_x, float end_y): m_Model(model) {
@@ -54,8 +55,28 @@ void RoutePlanner::AddNeighbors(RouteModel::Node *current_node) {
 // - Remove that node from the open_list.
 // - Return the pointer.
 
-RouteModel::Node *RoutePlanner::NextNode() {
+bool Compare(const RouteModel::Node* a,
+             const RouteModel::Node* b) {
+  // Compare the F values of two cells.
+  int f1 = a->g_value + a->h_value; // f1 = g1 + h1
+  int f2 = b->g_value + b->h_value; // f2 = g2 + h2
+  return f1 > f2; 
+}
 
+void NodeSort(std::vector<RouteModel::Node*> &v) {
+  // Sort in descending order.
+  sort(v.begin(), v.end(), Compare);
+}
+
+RouteModel::Node *RoutePlanner::NextNode() {
+    using std::cout;
+    NodeSort(this->open_list);
+
+    RouteModel::Node next = *open_list.back();
+    RouteModel::Node* node_ptr = &next;
+    open_list.pop_back();
+
+    return node_ptr;
 }
 
 
@@ -73,10 +94,24 @@ std::vector<RouteModel::Node> RoutePlanner::ConstructFinalPath(RouteModel::Node 
     std::vector<RouteModel::Node> path_found;
 
     // TODO: Implement your solution here.
+    while (true) {
+        // store current node
+        auto head = path_found.begin();
+        path_found.insert(head, *current_node);
 
-    distance *= m_Model.MetricScale(); // Multiply the distance by the scale of the map to get meters.
+        // look up its parent node
+        RouteModel::Node* n = current_node->parent;
+        if (n == nullptr) { break; }
+
+        distance += n->distance(*current_node);
+        distance *= m_Model.MetricScale(); // Multiply the distance by the scale of the map to get meters.
+        
+        // go to next node
+        current_node = current_node->parent;
+    }
+
+    
     return path_found;
-
 }
 
 
