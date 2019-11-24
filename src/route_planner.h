@@ -18,7 +18,7 @@ class RoutePlanner {
     void AddNeighbors(RouteModel::Node *current_node);
     float CalculateHValue(RouteModel::Node const *node);
     std::vector<RouteModel::Node> ConstructFinalPath(RouteModel::Node *);
-    RouteModel::Node *NextNode();
+    RouteModel::Node NextNode();
 
   private:
     // Add private variables or methods declarations here.

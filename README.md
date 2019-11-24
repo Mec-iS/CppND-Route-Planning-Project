@@ -59,3 +59,24 @@ The testing executable is also placed in the `build` directory. From within `bui
 ./test
 ```
 
+## Debugging
+Install Valgrind then:
+
+`valgrind -v --track-origins=yes  ./OSM_A_star_search`
+
+Install GDB:
+```
+gdb OSM_A_star_search
+
+# line by line
+(gdb) n
+
+# place breakpoints
+(gdb) break namefile:line
+# or
+(gdb) break function
+
+# print
+(gdb) p namevariable
+```
+Walkthrough [here](https://web.eecs.umich.edu/~sugih/pointers/gdbQS.html).

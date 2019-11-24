@@ -60,7 +60,7 @@ bool Compare(const RouteModel::Node* a,
   // Compare the F values of two cells.
   int f1 = a->g_value + a->h_value; // f1 = g1 + h1
   int f2 = b->g_value + b->h_value; // f2 = g2 + h2
-  return f1 > f2; 
+  return f1 < f2; 
 }
 
 void NodeSort(std::vector<RouteModel::Node*> &v) {
@@ -68,16 +68,21 @@ void NodeSort(std::vector<RouteModel::Node*> &v) {
   sort(v.begin(), v.end(), Compare);
 }
 
-RouteModel::Node *RoutePlanner::NextNode() {
-    using std::cout;
+RouteModel::Node RoutePlanner::NextNode() {
     NodeSort(this->open_list);
-
-    RouteModel::Node next = *open_list.back();
-    RouteModel::Node* node_ptr = &next;
-    open_list.pop_back();
-
-    return node_ptr;
+    // clone last element and assign pointer
+    RouteModel::Node next = *open_list[0];
+    //RouteModel::Node* node_ptr = &next;
+    // cler the open list for next node's neighobors
+    this->open_list.clear();
+    return next;
 }
+
+// RouteModel::Node RoutePlanner::NextNode() {
+//     std::sort(open_list.begin(), open_list.end(), [](const auto &_1st, const auto &_2nd){
+//     return _1st -> h_value + _1st -> g_value < _2nd -> h_value + _2nd -> g_value;
+//     });
+// }
 
 
 // TODO 6: Complete the ConstructFinalPath method to return the final path found from your A* search.
@@ -126,18 +131,26 @@ std::vector<RouteModel::Node> RoutePlanner::ConstructFinalPath(RouteModel::Node 
 void RoutePlanner::AStarSearch() {
     RouteModel::Node *current_node = nullptr;
 
-    auto node = this->start_node;
+    RouteModel::Node node = *this->start_node;
+    RouteModel::Node destination = *this->end_node;
 
     // TODO: Implement your solution here.
     while (true) {
-        node->AddNeighbors();
-        node = this->
+        if (!node.neighbors.empty()) {
+            node.neighbors.clear();
+        }
+        this->AddNeighbors(&node);
+        node = this->NextNode();
+        // spot destination
+        if ((node.x == destination.x) && (node.y == destination.y)) { 
+            try {
+                m_Model.path = this->ConstructFinalPath(&destination);
+            } catch (const std::exception& e) {
+                throw "Cannot find a path from start_node to end_node";
+            }
+        }
     }
 
-    try {
-        m_Model.path = this->ConstructFinalPath(this->end_node);
-    } catch (const std::exception& e) {
-        throw "Cannot find a path from start_node to end_node";
-    }
+
 
 }
