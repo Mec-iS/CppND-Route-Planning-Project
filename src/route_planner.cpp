@@ -40,11 +40,23 @@ void RoutePlanner::AddNeighbors(RouteModel::Node *current_node) {
     for (auto n: current_node->neighbors) {
         n->parent = current_node;
         n->h_value = this->CalculateHValue(n);
-        n->g_value = n->distance(*this->start_node);
+        n->g_value = current_node->g_value + current_node->distance(*n);
 
-        n->visited = true;
         this->open_list.push_back(n);
+        n->visited = true;
     }
+    // current_node->FindNeighbors();
+  
+    //   for (RouteModel::Node *neighbor: current_node->neighbors) {
+    //     neighbor->parent = current_node;
+    //     neighbor->h_value = RoutePlanner::CalculateHValue(neighbor);
+    //     neighbor->g_value = current_node->g_value + current_node->distance(*neighbor);
+        
+    //     RoutePlanner::open_list.emplace_back(neighbor);
+        
+    //     neighbor->visited = true;
+    //   }
+
 }
 
 
@@ -58,8 +70,8 @@ void RoutePlanner::AddNeighbors(RouteModel::Node *current_node) {
 bool Compare(const RouteModel::Node* a,
              const RouteModel::Node* b) {
   // Compare the F values of two cells.
-  int f1 = a->g_value + a->h_value; // f1 = g1 + h1
-  int f2 = b->g_value + b->h_value; // f2 = g2 + h2
+  int f1 = a->h_value + a->g_value; // f1 = g1 + h1
+  int f2 = b->h_value + b->g_value; // f2 = g2 + h2
   return f1 < f2; 
 }
 
@@ -68,14 +80,17 @@ void NodeSort(std::vector<RouteModel::Node*> &v) {
   sort(v.begin(), v.end(), Compare);
 }
 
-RouteModel::Node RoutePlanner::NextNode() {
-    NodeSort(this->open_list);
+RouteModel::Node *RoutePlanner::NextNode() {
+  //NodeSort(this->open_list);
+  sort(RoutePlanner::open_list.begin(), RoutePlanner::open_list.end(), [](const auto &_1st, const auto &_2nd){
+    return _1st->h_value + _1st->g_value < _2nd->h_value +_2nd->g_value;
+  });
+
     // clone last element and assign pointer
-    RouteModel::Node next = *open_list[0];
-    //RouteModel::Node* node_ptr = &next;
-    // cler the open list for next node's neighobors
-    this->open_list.clear();
-    return next;
+    RouteModel::Node *node_ptr = open_list.front();
+    // clear the open list for next node's neighobors
+    this->open_list.erase(this->open_list.begin());
+    return node_ptr;
 }
 
 // RouteModel::Node RoutePlanner::NextNode() {
@@ -110,12 +125,13 @@ std::vector<RouteModel::Node> RoutePlanner::ConstructFinalPath(RouteModel::Node 
         if (!parent) { break; }
 
         distance += parent->distance(current);
-        distance *= this->m_Model.MetricScale(); // Multiply the distance by the scale of the map to get meters.
         
         // go to next node
         current = *parent;
         parent = current.parent;
     }
+
+    distance *= this->m_Model.MetricScale(); // Multiply the distance by the scale of the map to get meters.
 
     return path_found;
 }
@@ -131,26 +147,17 @@ std::vector<RouteModel::Node> RoutePlanner::ConstructFinalPath(RouteModel::Node 
 void RoutePlanner::AStarSearch() {
     RouteModel::Node *current_node = nullptr;
 
-    RouteModel::Node node = *this->start_node;
-    RouteModel::Node destination = *this->end_node;
-
-    // TODO: Implement your solution here.
-    while (true) {
-        if (!node.neighbors.empty()) {
-            node.neighbors.clear();
-        }
-        this->AddNeighbors(&node);
-        node = this->NextNode();
-        // spot destination
-        if ((node.x == destination.x) && (node.y == destination.y)) { 
-            try {
-                m_Model.path = this->ConstructFinalPath(&destination);
-            } catch (const std::exception& e) {
-                throw "Cannot find a path from start_node to end_node";
-            }
-        }
+    this->start_node->visited = true;
+    this->open_list.push_back(RoutePlanner::start_node);
+  
+    while (!RoutePlanner::open_list.empty()) {
+      current_node = this->NextNode();
+      
+      if (current_node->distance(*this->end_node) == 0.0) {
+        this->m_Model.path = RoutePlanner::ConstructFinalPath(current_node);
+        return;
+      }
+      
+      this->AddNeighbors(current_node);
     }
-
-
-
 }

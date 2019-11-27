@@ -66,6 +66,10 @@ Install Valgrind then:
 
 Install GDB:
 ```
+# compile with debug flag
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+# run debugging session
 gdb OSM_A_star_search
 
 # line by line
