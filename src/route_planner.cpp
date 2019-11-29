@@ -70,8 +70,8 @@ void RoutePlanner::AddNeighbors(RouteModel::Node *current_node) {
 bool Compare(const RouteModel::Node* a,
              const RouteModel::Node* b) {
   // Compare the F values of two cells.
-  int f1 = a->h_value + a->g_value; // f1 = g1 + h1
-  int f2 = b->h_value + b->g_value; // f2 = g2 + h2
+  float f1 = a->h_value + a->g_value; // f1 = g1 + h1
+  float f2 = b->h_value + b->g_value; // f2 = g2 + h2
   return f1 < f2; 
 }
 
@@ -81,10 +81,10 @@ void NodeSort(std::vector<RouteModel::Node*> &v) {
 }
 
 RouteModel::Node *RoutePlanner::NextNode() {
-  //NodeSort(this->open_list);
-  sort(RoutePlanner::open_list.begin(), RoutePlanner::open_list.end(), [](const auto &_1st, const auto &_2nd){
-    return _1st->h_value + _1st->g_value < _2nd->h_value +_2nd->g_value;
-  });
+  NodeSort(this->open_list);
+  // sort(RoutePlanner::open_list.begin(), RoutePlanner::open_list.end(), [](const auto &_1st, const auto &_2nd){
+  //   return _1st->h_value + _1st->g_value < _2nd->h_value +_2nd->g_value;
+  // });
 
     // clone last element and assign pointer
     RouteModel::Node *node_ptr = open_list.front();
